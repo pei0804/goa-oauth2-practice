@@ -1,0 +1,78 @@
+basePath: /
+consumes:
+- application/json
+- application/xml
+- application/gob
+- application/x-gob
+externalDocs:
+  description: goa guide
+  url: http://goa.design/getting-started.html
+host: localhost:8080
+info:
+  contact:
+    email: admin@goa.design
+    name: goa team
+    url: http://goa.design
+  description: A simple appengine example
+  license:
+    name: MIT
+    url: https://github.com/goadesign/goa/blob/master/LICENSE
+  title: example
+  version: ""
+paths:
+  /login:
+    get:
+      operationId: oauth#login
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+        "302":
+          description: Found
+        "400":
+          description: Bad Request
+      schemes:
+      - http
+      - https
+      summary: login oauth
+      tags:
+      - oauth
+  /login/callback:
+    get:
+      operationId: oauth#callback
+      parameters:
+      - description: code
+        in: query
+        name: code
+        required: true
+        type: string
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+      schemes:
+      - http
+      - https
+      summary: callback oauth
+      tags:
+      - oauth
+produces:
+- application/json
+- application/xml
+- application/gob
+- application/x-gob
+responses:
+  BadRequest:
+    description: Bad Request
+  Found:
+    description: Found
+  OK:
+    description: OK
+schemes:
+- http
+- https
+swagger: "2.0"
