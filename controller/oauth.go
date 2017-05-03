@@ -1,19 +1,34 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"net/http"
 
+	"github.com/bradrydzewski/go.auth/oauth2"
 	"github.com/goadesign/goa"
 	"github.com/tikasan/goa-oauth2-practice/app"
-	"github.com/tikasan/goa-oauth2-practice/util"
 )
 
 const (
-	// OAuth2ClientID is the only authorized client ID
-	OAuth2ClientID = ""
-	// OAuth2ClientSecret is the only authorized client secret
-	OAuth2ClientSecret = ""
+	Scope = "user:email"  // grant access to the `users` api
+	State = "FqB4EbagQ2o" // random string to protect against CSRF attacks
 )
+
+var client = oauth2.Client{
+	RedirectURL:      "http://localhost:8080/login/callback",
+	AccessTokenURL:   "https://github.com/login/oauth/access_token",
+	AuthorizationURL: "https://github.com/login/oauth/authorize",
+	ClientId:         "",
+	ClientSecret:     "",
+}
+
+type User struct {
+	Login string `json:"login"`
+	Email string `json:"email"`
+}
 
 // OauthController implements the oauth resource.
 type OauthController struct {
@@ -30,12 +45,35 @@ func (c *OauthController) Callback(ctx *app.CallbackOauthContext) error {
 	// OauthController_Callback: start_implement
 
 	// Put your logic here
-	g := util.NewGitHubOAuth(OAuth2ClientID, OAuth2ClientSecret, "[“user:email”]")
-	tokenStr, _ := g.GenerateToken(ctx.Code, "ABC")
-	userInfo := g.GetUserInfo(tokenStr)
-	githubID := fmt.Sprintf("%0.f", userInfo["id"].(float64))
-	goa.LogInfo(ctx.Context, "userinfo", "userinfo", userInfo)
-	goa.LogInfo(ctx.Context, "githubID", "githubID", githubID)
+	accessToken, err := client.GrantToken(ctx.Code)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		fmt.Println("Access Token", accessToken)
+	}
+
+	// create the http.Request that will access a restricted resource
+	req, _ := http.NewRequest("GET", "https://api.github.com/user?access_token="+accessToken.AccessToken, nil)
+
+	// make the request
+	resp, err := http.DefaultClient.Do(req)
+	defer resp.Body.Close()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// unmarshal the body
+	raw, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	user := User{}
+	if err := json.Unmarshal(raw, &user); err != nil {
+		log.Fatal(err)
+	}
+
+	goa.LogInfo(ctx.Context, "userinfo", "userinfo", user)
 
 	// OauthController_Callback: end_implement
 	return nil
@@ -46,9 +84,8 @@ func (c *OauthController) Login(ctx *app.LoginOauthContext) error {
 	// OauthController_Login: start_implement
 
 	// Put your logic here
-	g := util.NewGitHubOAuth(OAuth2ClientID, OAuth2ClientSecret, "[“user:email”]")
-
-	// OauthController_Login: end_implement
-	ctx.ResponseData.Header().Set("Location", g.GetAuthorizeUrl("ABC"))
+	ctx.ResponseData.Header().Set("Location", client.AuthorizeRedirect(Scope, State))
 	return ctx.Found()
+	// OauthController_Login: end_implement
+	return nil
 }
