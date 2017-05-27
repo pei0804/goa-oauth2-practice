@@ -16,6 +16,11 @@ type User struct {
 	Email string `json:"email"`
 }
 
+const (
+	ClientID     = ""
+	ClientSecret = ""
+)
+
 // OauthController implements the oauth resource.
 type OauthController struct {
 	*goa.Controller
@@ -25,8 +30,8 @@ type OauthController struct {
 // NewOauthController creates a oauth controller.
 func NewOauthController(service *goa.Service) *OauthController {
 	conf := &oauth2.Config{
-		ClientID:     "",
-		ClientSecret: "",
+		ClientID:     ClientID,
+		ClientSecret: ClientSecret,
 		Scopes:       []string{"user"},
 		Endpoint:     github.Endpoint,
 	}
@@ -76,6 +81,7 @@ func (c *OauthController) Login(ctx *app.LoginOauthContext) error {
 	// Put your logic here
 	url := c.Config.AuthCodeURL("state")
 	goa.LogInfo(ctx.Context, "url: this", "this", url)
+	ctx.ResponseData.Header().Set("Location", "https://github.com/login/oauth/authorize?client_id="+ClientID+"&redirect_uri=http://localhost:8080/login/callback")
 	return ctx.Found()
 	// OauthController_Login: end_implement
 }
