@@ -8,7 +8,7 @@ delete:
 
 ##### Convenience targets ######
 
-REPO:=github.com/tikasan/goa-oauth2-practice
+REPO:=github.com/pei0804/goa-oauth2-practice
 GAE_PROJECT:=projectName
 
 init: depend bootstrap context
